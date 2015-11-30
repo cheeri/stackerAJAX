@@ -32,12 +32,42 @@ var showQuestion = function(question) {
 };
 
 
+var showAnswerer = function showAnswerer(answerer) {
+	
+	// clone our result template code
+	var result = $('.templates .answerers').clone();
+	
+	// Set the answerer profile in result
+	var profileElem = result.find('.answerer-profile a');
+	profileElem.attr('href', answerer.user.link);
+	profileElem.text(answerer.user.display_name);
+
+	
+	// set the Image property property in result
+	var imageElem = result.find('.answerer-image img');
+	imageElem.attr('src', answerer.user.profile_image)
+	
+
+	// set the Post Count 
+	var postCountElem = result.find('.answerer-count');
+	postCountElem.text(answerer.post_count);
+
+	// set the Reputation 
+	var reputationElem = result.find('.answerer-reputation');
+	reputationElem.text(answerer.user.reputation);
+
+	return result;
+};
+
+
 // this function takes the results object from StackOverflow
 // and returns the number of results and tags to be appended to DOM
 var showSearchResults = function(query, resultNum) {
 	var results = resultNum + ' results for <strong>' + query + '</strong>';
 	return results;
 };
+
+
 
 // takes error string and turns it into displayable DOM element
 var showError = function(error){
@@ -82,6 +112,45 @@ var getUnanswered = function(tags) {
 };
 
 
+var getTopAnswerers = function getTopAnswerers(tags){
+
+	// the parameters we need to pass in our request to StackOverflow's API
+	var request = { 
+		site: 'stackoverflow',		
+	};
+
+	var destinationURL = 'http://api.stackexchange.com/2.2/tags/' + tags + '/top-answerers/all_time';
+
+	$.ajax({
+		url: destinationURL,
+		data: request,
+		dataType: "jsonp",//use jsonp to avoid cross origin issues
+		type: "GET",
+	})
+	.done(function(result){ //this waits for the ajax to return with a succesful promise object
+		var searchResults = showSearchResults(tags, result.items.length);
+
+		$('.search-results').html(searchResults);
+
+		
+		//$.each is a higher order function. It takes an array and a function as an argument.
+		//The function is executed once for each item in the array.
+		$.each(result.items, function(i, item) {
+			var answerer = showAnswerer(item);
+			$('.results').append(answerer);
+		});
+		
+	})
+	.fail(function(jqXHR, error){ //this waits for the ajax to return with an error promise object
+		var errorElem = showError(error);
+		$('.search-results').append(errorElem);
+		
+	});
+
+
+};
+
+
 $(document).ready( function() {
 	$('.unanswered-getter').submit( function(e){
 		e.preventDefault();
@@ -91,4 +160,15 @@ $(document).ready( function() {
 		var tags = $(this).find("input[name='tags']").val();
 		getUnanswered(tags);
 	});
+
+	$('.inspiration-getter').submit( function(e){
+		e.preventDefault();
+		// zero out results if previous search has run
+		$('.results').html('');
+		// get the value of the tags the user submitted
+		var tags = $(this).find("input[name='answerers']").val();
+		getTopAnswerers(tags);
+	});
+
+
 });
